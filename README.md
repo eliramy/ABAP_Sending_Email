@@ -1,6 +1,6 @@
-# ABAP_Sending_Email Version 1.0
+# ABAP_Sending_Email Version 1.0 
 
-From SAP Netweaver 7.0 & above (Include S/4 HANA)
+From SAP Netweaver 7.0 & above (Include S/4 HANA) 
 
 1) Can attach multiples files , except , zip/rar files that not support for now.
 Files can be:
