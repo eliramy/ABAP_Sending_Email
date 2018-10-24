@@ -9,11 +9,6 @@ From SAP Netweaver 7.0 & above (Include S/4 HANA)
 		B) AnyForms sapscript/smartforms/adobe converted to binary files.
 		C) Any files not compressed.
 
-      Files can be:
-        A) binary files converted from spools.
-        B) Any Forms sapscript/smartforms/adobe converted to binary files.
-        C) Any files not compressed.
-
 2) Can define specific email or distrubation email also possible control the sender by SAP user name or any fictive email.
 
 3) Can also send the email in future date.
