@@ -1,4 +1,4 @@
-# ABAP_Sending_Email Version 1.0
+# ABAP_Sending_Email Version 1.0 
 
 From SAP Netweaver 7.0 & above (Include S/4 HANA) 
 
