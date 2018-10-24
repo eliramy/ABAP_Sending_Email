@@ -2,15 +2,6 @@
 
 From SAP Netweaver 7.0 & above (Include S/4 HANA)
 
-Can attach multiples files , except , zip/rar files that not support for now. 
-
-1) Files can be: 
-A) binary files converted from spools. 
-B) AnyForms sapscript/smartforms/adobe converted to binary files. 
-C) Any files not compressed.
-
-2) Can define specific email or distrubation email. 
-=======
 1) Can attach multiples files , except , zip/rar files that not support for now.
 Files can be:
 A) binary files converted from spools.
