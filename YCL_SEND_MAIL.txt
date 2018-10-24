@@ -1,0 +1,662 @@
+class YCL_SEND_MAIL definition
+  public
+  create public .
+
+public section.
+
+*"* public components of class YCL_SEND_MAIL
+*"* do not include other source files here!!!
+  class-methods SEND_MAIL
+    importing
+      !IV_SENDER_USER type SY-UNAME default SY-UNAME
+      !IV_SENDER_EMAIL type AD_SMTPADR default ''
+      !IV_DOC_TYPE type SO_OBJ_TP default 'RAW'
+      !IV_MESSAGE_SUBJECT type SO_OBJ_DES
+      !IT_MESSAGE_BODY type SOLI_TAB
+      !IT_RECIPIENT type RMPS_RECIPIENT_BCS
+      !IV_SEND_AT type BCS_SNDAT optional
+      !IT_ITCOO type YYT_ITCOO optional
+      !IT_TLINE type YYT_TLINE optional
+      !IT_FILE type YYT_FILE optional
+      !IV_COMMIT type XFELD default 'X'
+      !IV_SEND_IMMEDIATELY type OS_BOOLEAN default 'X' .
+  class-methods CONVERT_SPOOL_OTF
+    importing
+      !IV_RQIDENT type TSP01-RQIDENT
+    returning
+      value(ET_FILE) type SOLIX_TAB .
+  class-methods CONVERT_STR_TO_FILE
+    importing
+      !IV_STR type STRING
+    returning
+      value(ET_FILE_SOLIX) type SOLIX_TAB .
+  class-methods CONVERT_SPOOL_ADSP
+    importing
+      !IV_RQIDENT type TSP01-RQIDENT
+    returning
+      value(ET_FILE) type SOLIX_TAB .
+  PROTECTED SECTION.
+*"* protected components of class YCL_SEND_MAIL
+*"* do not include other source files here!!!
+private section.
+
+*"* private components of class YCL_SEND_MAIL
+*"* do not include other source files here!!!
+  class-data LO_SEND_REQUEST type ref to CL_BCS .
+  class-data LO_DOCUMENT type ref to CL_DOCUMENT_BCS .
+
+  class-methods SEND_REQUEST .
+  class-methods BODY_SUBJECT
+    importing
+      !IV_DOC_TYPE type SO_OBJ_TP
+      !IV_MESSAGE_SUBJECT type SO_OBJ_DES
+      !IT_MESSAGE_BODY type SOLI_TAB .
+  class-methods ATTACH_ITCOO
+    importing
+      !IT_OTF type YYT_ITCOO .
+  class-methods ATTACH_TEXT_CONT
+    importing
+      !IV_ATTACH_SUBJECT type SO_OBJ_DES
+      !IV_TYPE type SO_OBJ_TP
+      !IT_ATT_TEXT type SOLI_TAB .
+  class-methods ATTACH_TLINE
+    importing
+      !IT_OTF type YYT_TLINE .
+  class-methods ATTACH_FILE
+    importing
+      !IT_BIN_FILE type YYT_FILE .
+  class-methods ATTACH_BIN_CONT
+    importing
+      !IV_ATTACH_SUBJECT type SO_OBJ_DES
+      !IV_TYPE type SO_OBJ_TP
+      !IT_ATT_BIN type SOLIX_TAB
+      !IV_SIZE type SO_OBJ_LEN .
+  class-methods CREATE_SENDER
+    importing
+      !IV_SENDER type SY-UNAME
+      !IV_SENDER_EMAIL type AD_SMTPADR .
+  class-methods CREATE_RECIPIENTS
+    importing
+      !IT_RECIPIENT type RMPS_RECIPIENT_BCS .
+  class-methods EXECUTE_SEND
+    importing
+      !IV_COMMIT type XFELD optional
+      !IV_SEND_AT type BCS_SNDAT
+      !IV_SEND_IMMEDIATELY type OS_BOOLEAN .
+ENDCLASS.
+
+
+
+CLASS YCL_SEND_MAIL IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method YCL_SEND_MAIL=>ATTACH_BIN_CONT
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_ATTACH_SUBJECT              TYPE        SO_OBJ_DES
+* | [--->] IV_TYPE                        TYPE        SO_OBJ_TP
+* | [--->] IT_ATT_BIN                     TYPE        SOLIX_TAB
+* | [--->] IV_SIZE                        TYPE        SO_OBJ_LEN
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD ATTACH_BIN_CONT.
+
+    DATA: lx_document_bcs TYPE REF TO cx_document_bcs VALUE IS INITIAL.
+
+    TRY.
+        lo_document->add_attachment(
+        EXPORTING
+        i_attachment_type    = iv_type
+        i_attachment_subject = iv_attach_subject
+        i_attachment_size    = iv_size
+        i_att_content_hex    = it_att_bin ) .
+
+      CATCH cx_document_bcs INTO lx_document_bcs.
+
+    ENDTRY.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method YCL_SEND_MAIL=>ATTACH_FILE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_BIN_FILE                    TYPE        YYT_FILE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD ATTACH_FILE.
+
+    DATA:
+    lt_objfile TYPE solix_tab.
+
+    FIELD-SYMBOLS:
+    <fs_bin_file> TYPE yys_file.
+
+    LOOP AT it_bin_file ASSIGNING <fs_bin_file>.
+      CLEAR lt_objfile.
+
+      APPEND LINES OF <fs_bin_file>-t_file TO lt_objfile.
+
+      CALL METHOD attach_bin_cont
+        EXPORTING
+          iv_attach_subject = <fs_bin_file>-attachment_subject
+          iv_type           = <fs_bin_file>-attachment_type
+          it_att_bin        = lt_objfile
+          iv_size           = <fs_bin_file>-attachment_size.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method YCL_SEND_MAIL=>ATTACH_ITCOO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_OTF                         TYPE        YYT_ITCOO
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD ATTACH_ITCOO.
+
+    DATA:
+      lt_objbin         TYPE soli_tab,
+      lt_tline          TYPE TABLE OF tline,
+      lv_len_in         TYPE sood-objlen,
+      lt_doctab_archive TYPE TABLE OF docs,
+      lt_record         TYPE srm_t_solisti1.
+
+    FIELD-SYMBOLS:
+    <fs_otf> TYPE yys_itcoo.
+
+    LOOP AT it_otf ASSIGNING <fs_otf>.
+
+      CLEAR: lv_len_in,
+             lt_doctab_archive,
+             lt_tline,
+             lt_record,
+             lt_objbin.
+
+      CALL FUNCTION 'CONVERT_OTF_2_PDF'
+        EXPORTING
+          use_otf_mc_cmd         = 'X'
+        IMPORTING
+          bin_filesize           = lv_len_in
+        TABLES
+          otf                    = <fs_otf>-t_itcoo
+          doctab_archive         = lt_doctab_archive
+          lines                  = lt_tline
+        EXCEPTIONS
+          err_conv_not_possible  = 1
+          err_otf_mc_noendmarker = 2
+          OTHERS                 = 3.
+
+      IF sy-subrc <> 0.
+* MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*         WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+      ENDIF.
+
+      CALL FUNCTION 'QCE1_CONVERT'
+        TABLES
+          t_source_tab         = lt_tline
+          t_target_tab         = lt_record
+        EXCEPTIONS
+          convert_not_possible = 1
+          OTHERS               = 2.
+
+      IF sy-subrc <> 0.
+*      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+*              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+      ENDIF.
+
+      lt_objbin[] = lt_record[].
+
+      CALL METHOD attach_text_cont
+        EXPORTING
+          iv_attach_subject = <fs_otf>-attachment_subject
+          iv_type           = <fs_otf>-attachment_type
+          it_att_text       = lt_objbin.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method YCL_SEND_MAIL=>ATTACH_TEXT_CONT
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_ATTACH_SUBJECT              TYPE        SO_OBJ_DES
+* | [--->] IV_TYPE                        TYPE        SO_OBJ_TP
+* | [--->] IT_ATT_TEXT                    TYPE        SOLI_TAB
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD ATTACH_TEXT_CONT.
+
+    DATA: lx_document_bcs TYPE REF TO cx_document_bcs VALUE IS INITIAL.
+
+    TRY.
+        lo_document->add_attachment(
+        EXPORTING
+        i_attachment_type    = iv_type
+        i_attachment_subject = iv_attach_subject
+        i_att_content_text   = it_att_text ) .
+
+      CATCH cx_document_bcs INTO lx_document_bcs.
+
+    ENDTRY.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method YCL_SEND_MAIL=>ATTACH_TLINE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_OTF                         TYPE        YYT_TLINE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD ATTACH_TLINE.
+
+    DATA:
+    lt_objbin TYPE soli_tab.
+
+    FIELD-SYMBOLS:
+    <fs_otf> TYPE yys_tline.
+
+    LOOP AT it_otf ASSIGNING <fs_otf>.
+
+      CLEAR: lt_objbin.
+
+      CALL FUNCTION 'QCE1_CONVERT'
+        TABLES
+          t_source_tab         = <fs_otf>-t_tline
+          t_target_tab         = lt_objbin
+        EXCEPTIONS
+          convert_not_possible = 1
+          OTHERS               = 2.
+
+      IF sy-subrc <> 0.
+*      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+*              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+      ENDIF.
+
+      CALL METHOD attach_text_cont
+        EXPORTING
+          iv_attach_subject = <fs_otf>-attachment_subject
+          iv_type           = <fs_otf>-attachment_type
+          it_att_text       = lt_objbin.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method YCL_SEND_MAIL=>BODY_SUBJECT
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_DOC_TYPE                    TYPE        SO_OBJ_TP
+* | [--->] IV_MESSAGE_SUBJECT             TYPE        SO_OBJ_DES
+* | [--->] IT_MESSAGE_BODY                TYPE        SOLI_TAB
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD BODY_SUBJECT.
+
+    lo_document =
+     cl_document_bcs=>create_document( i_type    = iv_doc_type   "'RAW'
+                                       i_text    = it_message_body
+                                       i_subject = iv_message_subject ).
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method YCL_SEND_MAIL=>CONVERT_SPOOL_ADSP
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_RQIDENT                     TYPE        TSP01-RQIDENT
+* | [<-()] ET_FILE                        TYPE        SOLIX_TAB
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD convert_spool_adsp.
+
+    FIELD-SYMBOLS:
+    <fs_partlist> TYPE adspartdesc.
+
+    DATA:
+      ls_tsp01    TYPE tsp01sys,
+      lv_data     TYPE fpcontent,
+      lt_partlist TYPE TABLE OF adspartdesc.
+
+    CALL FUNCTION 'RSPO_ISELECT_TSP01'
+      EXPORTING
+        rfcsystem  = sy-sysid
+        rqident    = iv_rqident
+      IMPORTING
+        tsp01_elem = ls_tsp01
+      EXCEPTIONS
+        error      = 1
+        OTHERS     = 2.
+
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+    CALL FUNCTION 'RSPO_ADSP_FILL_PARTLIST'
+      EXPORTING
+        rq       = ls_tsp01
+      TABLES
+        partlist = lt_partlist.
+
+    READ TABLE lt_partlist ASSIGNING <fs_partlist> INDEX 1.
+
+    CHECK sy-subrc = 0.
+
+    CALL FUNCTION 'FPCOMP_CREATE_PDF_FROM_SPOOL'
+      EXPORTING
+        i_spoolid      = iv_rqident
+        i_partnum      = <fs_partlist>-adsnum
+      IMPORTING
+        e_pdf          = lv_data
+      EXCEPTIONS
+        ads_error      = 1
+        usage_error    = 2
+        system_error   = 3
+        internal_error = 4
+        OTHERS         = 5.
+
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+    CHECK lv_data IS NOT INITIAL.
+
+    FIELD-SYMBOLS:
+    <fs_file_x> TYPE cps_x255.
+
+    DATA:
+      lt_file_x TYPE cpt_x255,
+      lv_size   TYPE i,
+      ls_file   TYPE solix.
+
+    CALL METHOD cl_scp_change_db=>xstr_to_xtab
+      EXPORTING
+        im_xstring = lv_data
+      IMPORTING
+        ex_xtab    = lt_file_x
+        ex_size    = lv_size.
+
+    LOOP AT lt_file_x ASSIGNING <fs_file_x>.
+      ls_file-line = <fs_file_x>.
+      APPEND ls_file TO et_file.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method YCL_SEND_MAIL=>CONVERT_SPOOL_OTF
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_RQIDENT                     TYPE        TSP01-RQIDENT
+* | [<-()] ET_FILE                        TYPE        SOLIX_TAB
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD convert_spool_otf.
+
+    DATA:
+    lt_soli TYPE TABLE OF soli.
+
+    CALL FUNCTION 'RSPO_RETURN_SPOOLJOB'
+      EXPORTING
+        rqident              = iv_rqident
+        desired_type         = 'OTF'
+      TABLES
+        buffer               = lt_soli
+      EXCEPTIONS
+        no_such_job          = 1
+        job_contains_no_data = 2
+        selection_empty      = 3
+        no_permission        = 4
+        can_not_access       = 5
+        read_error           = 6
+        type_no_match        = 7
+        OTHERS               = 8.
+
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+    CHECK lt_soli[] IS NOT INITIAL.
+
+    DATA:
+      lv_size  TYPE i,
+      lv_data  TYPE xstring,
+      lv_dummy TYPE soli_tab.
+
+* CONVERT OTF TO PDF
+    CALL FUNCTION 'CONVERT_OTF'
+      EXPORTING
+        format                = 'PDF'
+      IMPORTING
+        bin_filesize          = lv_size
+        bin_file              = lv_data
+      TABLES
+        otf                   = lt_soli[]
+        lines                 = lv_dummy
+      EXCEPTIONS
+        err_max_linewidth     = 1
+        err_format            = 2
+        err_conv_not_possible = 3
+        OTHERS                = 4.
+
+    IF sy-subrc <> 0.
+*    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+*    WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+    CHECK lv_data IS NOT INITIAL.
+
+    CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+      EXPORTING
+        buffer     = lv_data
+      TABLES
+        binary_tab = et_file.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method YCL_SEND_MAIL=>CONVERT_STR_TO_FILE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_STR                         TYPE        STRING
+* | [<-()] ET_FILE_SOLIX                  TYPE        SOLIX_TAB
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD CONVERT_STR_TO_FILE.
+
+    FIELD-SYMBOLS:
+    <fs_tab>     TYPE lxe_xtab.
+
+    DATA:
+      lv_xstr       TYPE xstring,
+      ls_file_solix TYPE solix,
+* lt_file_soli  TYPE soli_tab,
+      lt_tab        TYPE TABLE OF lxe_xtab.
+
+    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
+      EXPORTING
+        text     = iv_str
+        encoding = '1824'     " UTF-8 Hesham
+      IMPORTING
+        buffer   = lv_xstr
+      EXCEPTIONS
+        failed   = 1
+        OTHERS   = 2.
+
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+    CALL FUNCTION 'LXE_COMMON_XSTRING_TO_TABLE'
+      EXPORTING
+        in_xstring = lv_xstr
+      TABLES
+        ex_tab     = lt_tab.
+
+    LOOP AT lt_tab ASSIGNING <fs_tab>.
+      ls_file_solix-line = <fs_tab>-text.
+      APPEND ls_file_solix TO et_file_solix.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method YCL_SEND_MAIL=>CREATE_RECIPIENTS
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_RECIPIENT                   TYPE        RMPS_RECIPIENT_BCS
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD CREATE_RECIPIENTS.
+
+    FIELD-SYMBOLS: <fs_recipient> TYPE REF TO if_recipient_bcs.
+
+    LOOP AT it_recipient ASSIGNING <fs_recipient>.
+* Set recipient
+      lo_send_request->add_recipient( EXPORTING
+                                         i_recipient = <fs_recipient>
+                                         i_express   = '' ).
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method YCL_SEND_MAIL=>CREATE_SENDER
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_SENDER                      TYPE        SY-UNAME
+* | [--->] IV_SENDER_EMAIL                TYPE        AD_SMTPADR
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD CREATE_SENDER.
+
+    DATA:
+    lo_sender  TYPE REF TO  if_sender_bcs.
+
+    IF iv_sender_email IS INITIAL.
+      lo_sender = cl_sapuser_bcs=>create( iv_sender ).
+    ELSE.
+      lo_sender =
+      cl_cam_address_bcs=>create_internet_address( iv_sender_email ).
+    ENDIF.
+
+* Set sender
+    lo_send_request->set_sender( EXPORTING
+                                 i_sender = lo_sender ).
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method YCL_SEND_MAIL=>EXECUTE_SEND
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_COMMIT                      TYPE        XFELD(optional)
+* | [--->] IV_SEND_AT                     TYPE        BCS_SNDAT
+* | [--->] IV_SEND_IMMEDIATELY            TYPE        OS_BOOLEAN
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD EXECUTE_SEND.
+
+    DATA: lv_sent_to_all(1) TYPE c VALUE IS INITIAL.
+
+    IF iv_send_at IS INITIAL.
+      lo_send_request->set_send_immediately( iv_send_immediately ).
+    ELSE.
+      lo_send_request->send_request->set_send_at( iv_send_at ).
+      lo_send_request->set_send_immediately( space ).
+    ENDIF.
+
+    lo_send_request->set_status_attributes(
+        EXPORTING
+          i_requested_status = 'N'
+          i_status_mail      = 'N' ).
+
+    lo_send_request->send(
+      EXPORTING
+        i_with_error_screen = ''
+      RECEIVING
+        result              = lv_sent_to_all ).
+
+    CHECK iv_commit = 'X'.
+    CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
+      EXPORTING
+        wait = 'X'.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method YCL_SEND_MAIL=>SEND_MAIL
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_SENDER_USER                 TYPE        SY-UNAME (default =SY-UNAME)
+* | [--->] IV_SENDER_EMAIL                TYPE        AD_SMTPADR (default ='')
+* | [--->] IV_DOC_TYPE                    TYPE        SO_OBJ_TP (default ='RAW')
+* | [--->] IV_MESSAGE_SUBJECT             TYPE        SO_OBJ_DES
+* | [--->] IT_MESSAGE_BODY                TYPE        SOLI_TAB
+* | [--->] IT_RECIPIENT                   TYPE        RMPS_RECIPIENT_BCS
+* | [--->] IV_SEND_AT                     TYPE        BCS_SNDAT(optional)
+* | [--->] IT_ITCOO                       TYPE        YYT_ITCOO(optional)
+* | [--->] IT_TLINE                       TYPE        YYT_TLINE(optional)
+* | [--->] IT_FILE                        TYPE        YYT_FILE(optional)
+* | [--->] IV_COMMIT                      TYPE        XFELD (default ='X')
+* | [--->] IV_SEND_IMMEDIATELY            TYPE        OS_BOOLEAN (default ='X')
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD SEND_MAIL.
+
+    CLEAR: lo_send_request, lo_document.
+
+* Create send request
+    CALL METHOD send_request.
+
+* Message body and subject
+    CALL METHOD body_subject
+      EXPORTING
+        iv_doc_type        = iv_doc_type
+        iv_message_subject = iv_message_subject
+        it_message_body    = it_message_body.
+
+* Add attachment
+    IF it_itcoo[] IS NOT INITIAL.
+      CALL METHOD attach_itcoo
+        EXPORTING
+          it_otf = it_itcoo.
+    ENDIF.
+
+    IF it_tline[] IS NOT INITIAL.
+      CALL METHOD attach_tline
+        EXPORTING
+          it_otf = it_tline.
+    ENDIF.
+
+    IF it_file[] IS NOT INITIAL.
+      CALL METHOD attach_file
+        EXPORTING
+          it_bin_file = it_file.
+    ENDIF.
+
+* Pass the document to send request
+    lo_send_request->set_document( lo_document ).
+
+* Create & set sender
+    CALL METHOD create_sender
+      EXPORTING
+        iv_sender       = iv_sender_user
+        iv_sender_email = iv_sender_email.
+
+* Create recipients
+    CALL METHOD create_recipients
+      EXPORTING
+        it_recipient = it_recipient.
+
+* Execute Send email
+    CALL METHOD execute_send
+      EXPORTING
+        iv_commit           = iv_commit
+        iv_send_at          = iv_send_at
+        iv_send_immediately = iv_send_immediately.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method YCL_SEND_MAIL=>SEND_REQUEST
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD SEND_REQUEST.
+
+    lo_send_request = cl_bcs=>create_persistent( ).
+
+  ENDMETHOD.
+ENDCLASS.
