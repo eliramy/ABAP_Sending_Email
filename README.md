@@ -9,5 +9,7 @@ C) Any files not compressed.
 2) Can define specific email or distrubation email.
 also possible control the sender by SAP user name or any fictive email.
 
+3) Can also send the email in future date.
+
 Enjoy :)
 
