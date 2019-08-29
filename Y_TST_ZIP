@@ -1,0 +1,102 @@
+*&---------------------------------------------------------------------*
+*& Report Y_TST_ZIP
+*&---------------------------------------------------------------------*
+REPORT y_tst_zip.
+
+PARAMETERS
+  p_file TYPE string.
+
+DATA:
+  x_file TYPE xstring.
+
+START-OF-SELECTION.
+
+  CASE cl_gui_alv_grid=>offline( ).
+    WHEN 0. "Online upload
+
+
+      TRY.
+          DATA lo_openxml_not_found TYPE REF TO cx_openxml_not_found.
+
+          CALL METHOD cl_openxml_helper=>load_local_file
+            EXPORTING
+              im_file_name = p_file
+            RECEIVING
+              re_data      = x_file.
+
+        CATCH cx_openxml_not_found INTO lo_openxml_not_found.
+          DATA(lv_str) = lo_openxml_not_found->if_message~get_longtext( ) .
+
+          IF lv_str IS INITIAL.
+            lv_str = lo_openxml_not_found->if_message~get_text( ) .
+          ENDIF.
+
+          MESSAGE lv_str TYPE 'E'.
+
+      ENDTRY.
+
+    WHEN OTHERS. "offline upload
+
+      DATA:
+      lv_line TYPE xstring.
+
+      OPEN DATASET p_file IN BINARY MODE FOR INPUT.
+      IF sy-subrc = 0.
+        DO.
+          READ DATASET p_file INTO lv_line.
+          IF sy-subrc <> 0.
+            EXIT.
+          ENDIF.
+
+          CONCATENATE x_file lv_line INTO x_file IN BYTE MODE.
+
+        ENDDO.
+      ENDIF.
+      CLOSE DATASET p_file.
+
+  ENDCASE.
+
+  DATA:
+    lt_zip          TYPE solix_tab,
+    lt_message_body TYPE bcsy_text,
+    lt_recipient    TYPE rmps_recipient_bcs,
+    lo_recipient    TYPE REF TO if_recipient_bcs,
+    ls_file         TYPE yys_file,
+    lt_file         TYPE yyt_file.
+
+  CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+    EXPORTING
+      buffer     = x_file
+    TABLES
+      binary_tab = lt_zip.
+
+* Create recipient - passing the receipient e-mail ID
+  TRY .
+
+      DATA:
+        lv_email TYPE adr6-smtp_addr.
+
+      lv_email = 'koko@aol.co.il'.
+      lo_recipient = cl_cam_address_bcs=>create_internet_address( lv_email ).
+
+    CATCH cx_address_bcs.
+
+  ENDTRY.
+
+  APPEND lo_recipient TO lt_recipient.
+
+* Set attachment File
+  ls_file-attachment_subject = 'test.zip'.
+  ls_file-attachment_type    = 'BIN'.
+  ls_file-t_file[]           = lt_zip.
+* ls_file-attachment_size    = lv_size.
+
+  APPEND ls_file TO lt_file.
+
+  CALL METHOD y_send_mail=>send_mail
+    EXPORTING
+      iv_sender_user     = sy-uname
+      iv_message_subject = 'test zip'
+      it_message_body    = lt_message_body
+      it_recipient       = lt_recipient
+      it_file            = lt_file.
