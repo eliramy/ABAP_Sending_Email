@@ -99,4 +99,4 @@ START-OF-SELECTION.
       iv_message_subject = 'test zip'
       it_message_body    = lt_message_body
       it_recipient       = lt_recipient
-      it_file            = lt_file.
+      it_file            = lt_file. 
