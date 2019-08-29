@@ -659,4 +659,4 @@ CLASS YCL_SEND_MAIL IMPLEMENTATION.
     lo_send_request = cl_bcs=>create_persistent( ).
 
   ENDMETHOD.
-ENDCLASS.
+ENDCLASS. 
