@@ -83,6 +83,22 @@ START-OF-SELECTION.
 
   ENDTRY.
 
+* Option to create recipient with distribution list (create distribution transaction SO23)
+*  TRY.
+*      lo_recipient = cl_distributionlist_bcs=>getu_persistent(
+*        i_dliname = p_mailto
+*        i_private = space ).
+*
+*      APPEND lo_recipient TO lt_recipient.
+*
+*    CATCH cx_address_bcs INTO lo_exception.
+*
+*      lv_message = lo_exception->get_text( ).
+*      WRITE:/ lv_message.
+*      RETURN.
+*
+*  ENDTRY.
+
   APPEND lo_recipient TO lt_recipient.
 
 * Set attachment File
@@ -99,4 +115,4 @@ START-OF-SELECTION.
       iv_message_subject = 'test zip'
       it_message_body    = lt_message_body
       it_recipient       = lt_recipient
-      it_file            = lt_file. 
+      it_file            = lt_file.
