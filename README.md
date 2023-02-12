@@ -16,5 +16,7 @@ C) Any files.
 
 4) Body can format in text/plain or HTML .
 
+5) Main method: send_mail .
+
 Enjoy :) 
 
