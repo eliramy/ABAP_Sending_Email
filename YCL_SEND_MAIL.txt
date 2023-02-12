@@ -755,7 +755,7 @@ CLASS Y_SEND_MAIL IMPLEMENTATION.
     CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
       EXPORTING
         text     = iv_str
-        encoding = '1824'     " UTF-8 Hesham
+        encoding = '1824'     " UTF-8
       IMPORTING
         buffer   = lv_xstr
       EXCEPTIONS
