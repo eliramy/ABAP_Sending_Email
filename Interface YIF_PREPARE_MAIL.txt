@@ -1,0 +1,21 @@
+interface YIF_PREPARE_MAIL
+  public .
+
+
+  methods GET_SUBJECT
+    returning
+      value(RV_SUBJECT) type SO_OBJ_DES .
+  methods GET_BODY
+    returning
+      value(RT_BODY) type SOLI_TAB .
+  methods GET_DISTRIBUTION_LIST
+    importing
+      !IV_DLINAME type SO_OBJ_NAM
+    returning
+      value(RT_RECIPIENT) type RMPS_RECIPIENT_BCS .
+  methods GET_ATTACH_FILE
+    importing
+      !IR_DATA type ref to DATA
+    returning
+      value(RT_FILE) type YYT_FILE .
+endinterface.
