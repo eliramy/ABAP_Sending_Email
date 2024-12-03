@@ -18,5 +18,13 @@ B) AnyForms sapscript/smartforms/adobe converted to binary files.
 
 C) Any files.
 
+Instruction to implement code:
+1) file Methods_Desc+Table_Types+Structure_Types.xlsx -> check sheets in file to implement structures & Table types.
+2) file y_send_mail.txt -> implement the class .
+3) files Interface YIF_PREPARE_MAIL.txt & Example local class send maill attach internal table as excel using interface yif_prepare_mail.txt 
+    -> optional example to prepare details for mail interface.
+4) all others files example codes to send attach files . 
+
+
 Enjoy :) 
 
