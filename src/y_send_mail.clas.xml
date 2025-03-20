@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_CLAS" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <VSEOCLASS>
+    <CLSNAME>Y_SEND_MAIL</CLSNAME>
+    <LANGU>E</LANGU>
+    <DESCRIPT>Send mail</DESCRIPT>
+    <STATE>1</STATE>
+    <CLSCCINCL>X</CLSCCINCL>
+    <FIXPT>X</FIXPT>
+    <UNICODE>X</UNICODE>
+   </VSEOCLASS>
+   <DESCRIPTIONS>
+    <SEOCOMPOTX>
+     <CMPNAME>ATTACH_BIN_CONT</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Attach Binary content</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>ATTACH_FILE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Attach FILE content</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>ATTACH_ITCOO</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Attach ITCOO content</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>ATTACH_TEXT_CONT</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Attach text content</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>ATTACH_TLINE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Attach TLINE content</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>BODY_SUBJECT</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Subject &amp; body for mail</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>CONVERT_SPOOL_ADSP</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Convert Adobe spool</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>CONVERT_SPOOL_OTF</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Convert Spool to OTF</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>CONVERT_STR_TO_FILE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Convert string text -&gt; for old xls</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>CREATE_RECIPIENTS</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Create Recipients</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>CREATE_SENDER</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Create Sender</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>EXECUTE_SEND</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Execute send email request</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>SEND_MAIL</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Send Mail</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>SEND_REQUEST</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Send Request</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>TAB_TO_EXCEL_XML</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Any internal table to excel xml</DESCRIPT>
+    </SEOCOMPOTX>
+   </DESCRIPTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>
